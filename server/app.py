@@ -25,16 +25,35 @@ class Signup(Resource):
         )
         db.session.add(user)
         db.session.commit()
+        session['user_id'] = user.id
         return user.to_dict(), 201
 
 class CheckSession(Resource):
-    pass
+    def get(self):
+        user_id = session.get('user_id')
+        if user_id:
+            user = User.query.filter(User.id == user_id).first() 
+            return user.to_dict()
+        return {}, 204
 
 class Login(Resource):
-    pass
+    def post(self):
+        username = request.get_json()['username']
+        password = request.get_json()['password']
+        user = User.query.filter(User.username == username).first()
+        if user.authenticate(password):
+            session['user_id'] = user.id
+            return user.to_dict(), 200
+        return {'error': 'Invalid username or password'}, 401
 
 class Logout(Resource):
-    pass
+    def delete(self):
+        session['user_id'] = None
+        return {}, 204 
+
+api.add_resource(Login, '/login', endpoint='login')   
+api.add_resource(Logout, '/logout', endpoint='logout')    
+api.add_resource(CheckSession, '/check_session', endpoint='check_session')    
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(Signup, '/signup', endpoint='signup')
